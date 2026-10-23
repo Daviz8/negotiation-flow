@@ -1,0 +1,21 @@
+# Exclude original StudentShop reference files
+reference/
+
+# Exclude tests from the published package
+test/
+
+# Exclude Git files and repository configuration
+.git/
+.github/
+.gitignore
+
+# Exclude editor configuration
+.vscode/
+
+# Exclude macOS system files
+.DS_Store
+
+# Exclude local dependencies and logs
+node_modules/
+npm-debug.log*
+

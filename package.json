@@ -1,0 +1,30 @@
+{
+  "name": "negotiation-flow",
+  "version": "1.0.0",
+  "description": "A lightweight JavaScript negotiation rules engine",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+
+   "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+  "test": "vitest run",
+  "test:watch": "vitest"
+  },
+  "keywords": [
+    "negotiation",
+    "trade-in",
+    "offers",
+    "counter-offer"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
+}
