@@ -16,6 +16,7 @@ const baseSale = () => {
   };
 };
 
+//Creating a pending offer.
 describe("Negotiation package", () => {
   it("creates a pending offer and increments the round count", () => {
     const result = createOffer(baseSale(), {
@@ -31,6 +32,7 @@ describe("Negotiation package", () => {
     expect(saleRequest.status).toBe(SALE_STATUS.NEGOTIATING);
   });
 
+  //Accepting an offer.
   it("acceptance stores the accepted price", () => {
     const offered = createOffer(baseSale(), {
       offerPrice: 50000,
@@ -46,6 +48,8 @@ describe("Negotiation package", () => {
     expect(saleRequest.acceptedPrice).toBe(50000);
   });
 
+
+//Rejecting an offer with a counter-price.
   it("rejection with a counter price sets counter_price_sent", () => {
     const offered = createOffer(baseSale(), {
       offerPrice: 50000,
@@ -63,6 +67,7 @@ describe("Negotiation package", () => {
     expect(saleRequest.negotiations[0].counterPrice).toBe(60000);
   });
 
+  //Rejecting the final allowed round.
   it("third rejected offer closes the request", () => {
     let sale = baseSale();
 
@@ -76,6 +81,7 @@ describe("Negotiation package", () => {
     expect(sale.status).toBe(SALE_STATUS.REJECTED);
   });
 
+  //Rejecting an invalid offer price.
   it("does not allow invalid offer prices", () => {
     expect(() => {
       createOffer(baseSale(), {
@@ -84,3 +90,187 @@ describe("Negotiation package", () => {
     }).toThrow(/greater than zero/);
   });
 });
+
+//Test invalid offer prices
+
+it("rejects a negative offer price", () => {
+  expect(() => {
+    createOffer(baseSale(), { offerPrice: -5000 });
+  }).toThrow(/greater than zero/);
+});
+
+it("rejects a text offer price", () => {
+  expect(() => {
+    createOffer(baseSale(), { offerPrice: "hello" });
+  }).toThrow(/greater than zero/);
+});
+
+it("rejects an infinite offer price", () => {
+  expect(() => {
+    createOffer(baseSale(), { offerPrice: Infinity });
+  }).toThrow(/greater than zero/);
+});
+
+
+
+// //Test the maximum negotiation limit
+
+// it("does not allow another offer after the maximum rounds", () => {
+//   const sale = {
+//     ...baseSale(),
+//     negotiationCount: MAX_NEGOTIATION_ROUNDS,
+//   };
+
+//   expect(() => {
+//     createOffer(sale, { offerPrice: 50000 });
+//   }).toThrow(/Negotiation limit reached/);
+// });
+
+//Test that the original sale does not change
+
+it("does not change the original sale when creating an offer", () => {
+  const originalSale = baseSale();
+
+  createOffer(originalSale, {
+    offerPrice: 50000,
+  });
+
+  expect(originalSale.status).toBe(SALE_STATUS.SUBMITTED);
+  expect(originalSale.negotiationCount).toBe(0);
+  expect(originalSale.negotiations).toEqual([]);
+});
+
+//Test that an old pending offer is closed
+it("closes an older pending offer before adding a new one", () => {
+  const sale = {
+    ...baseSale(),
+    status: SALE_STATUS.NEGOTIATING,
+    negotiationCount: 1,
+    negotiations: [
+      {
+        trialNumber: 1,
+        adminOfferPrice: 50000,
+        sellerResponse: "pending",
+      },
+    ],
+  };
+
+  const result = createOffer(sale, {
+    offerPrice: 55000,
+  });
+
+  expect(
+    result.saleRequest.negotiations[0].sellerResponse
+  ).toBe("rejected");
+
+  expect(
+    result.saleRequest.negotiations[1].sellerResponse
+  ).toBe("pending");
+
+  expect(result.saleRequest.negotiationCount).toBe(2);
+});
+
+//Test that the seller cannot respond without an offer
+
+it("does not allow a response when no offer exists", () => {
+  expect(() => {
+    respondToOffer(baseSale(), {
+      response: "accepted",
+    });
+  }).toThrow(/No admin offer found/);
+});
+
+// Test that an offer cannot be answered twice
+
+it("does not allow the same offer to be answered twice", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  const acceptedSale = respondToOffer(offeredSale, {
+    response: "accepted",
+  }).saleRequest;
+
+  expect(() => {
+    respondToOffer(acceptedSale, {
+      response: "rejected",
+    });
+  }).toThrow(/already been responded to/);
+});
+
+//Test invalid seller responses
+
+it("rejects an unsupported seller response", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  expect(() => {
+    respondToOffer(offeredSale, {
+      response: "maybe",
+    });
+  }).toThrow(/response must be "accepted" or "rejected"/);
+});
+
+
+//Tests invalid counter price 
+it("rejects a negative counter-price", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  expect(() => {
+    respondToOffer(offeredSale, {
+      response: "rejected",
+      counterPrice: -1000,
+    });
+  }).toThrow(/counterPrice must be/);
+});
+
+it("rejects a non-numeric counter-price", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  expect(() => {
+    respondToOffer(offeredSale, {
+      response: "rejected",
+      counterPrice: "hello",
+    });
+  }).toThrow(/counterPrice must be/);
+});
+
+//Test that messages are cleaned up
+it("removes extra spaces around an offer message", () => {
+  const result = createOffer(baseSale(), {
+    offerPrice: 50000,
+    message: "  My best offer  ",
+  });
+
+  expect(
+    result.saleRequest.negotiations[0].message
+  ).toBe("My best offer");
+});
+
+//Test the exact final round
+// it("rejects the sale when the final allowed offer is rejected", () => {
+//   const sale = {
+//     ...baseSale(),
+//     negotiationCount: MAX_NEGOTIATION_ROUNDS - 1,
+//   };
+
+//   const offeredSale = createOffer(sale, {
+//     offerPrice: 50000,
+//   }).saleRequest;
+
+//   const result = respondToOffer(offeredSale, {
+//     response: "rejected",
+//   });
+
+//   expect(result.saleRequest.negotiationCount).toBe(
+//     MAX_NEGOTIATION_ROUNDS
+//   );
+
+//   expect(result.saleRequest.status).toBe(SALE_STATUS.REJECTED);
+//   expect(result.finalRejected).toBe(true);
+// });
