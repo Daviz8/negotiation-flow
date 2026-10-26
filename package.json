@@ -4,6 +4,10 @@
   "description": "A lightweight JavaScript negotiation rules engine",
   "type": "module",
   "main": "./src/index.js",
+    "repository": {
+    "type": "git",
+    "url": "https://github.com/Daviz8/negotiation-flow/"
+  },
   "exports": {
     ".": "./src/index.js"
   },
