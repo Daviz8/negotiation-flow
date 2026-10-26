@@ -4,6 +4,7 @@ import {
   createOffer,
   respondToOffer,
   SALE_STATUS,
+  MAX_NEGOTIATION_ROUNDS
 } from "../src/index.js";
 
 // Create a fresh sale object for each test.
@@ -71,7 +72,7 @@ describe("Negotiation package", () => {
   it("third rejected offer closes the request", () => {
     let sale = baseSale();
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < MAX_NEGOTIATION_ROUNDS; i++) {
       sale = createOffer(sale, { offerPrice: 50000 + i * 1000,}).saleRequest;
       sale = respondToOffer(sale, {
         response: "rejected",
@@ -113,18 +114,18 @@ it("rejects an infinite offer price", () => {
 
 
 
-// //Test the maximum negotiation limit
+ //Test the maximum negotiation limit
 
-// it("does not allow another offer after the maximum rounds", () => {
-//   const sale = {
-//     ...baseSale(),
-//     negotiationCount: MAX_NEGOTIATION_ROUNDS,
-//   };
+it("does not allow another offer after the maximum rounds", () => {
+  const sale = {
+    ...baseSale(),
+    negotiationCount: MAX_NEGOTIATION_ROUNDS,
+  };
 
-//   expect(() => {
-//     createOffer(sale, { offerPrice: 50000 });
-//   }).toThrow(/Negotiation limit reached/);
-// });
+  expect(() => {
+    createOffer(sale, { offerPrice: 50000 });
+  }).toThrow(/Negotiation limit reached/);
+});
 
 //Test that the original sale does not change
 
@@ -253,24 +254,91 @@ it("removes extra spaces around an offer message", () => {
 });
 
 //Test the exact final round
-// it("rejects the sale when the final allowed offer is rejected", () => {
-//   const sale = {
-//     ...baseSale(),
-//     negotiationCount: MAX_NEGOTIATION_ROUNDS - 1,
-//   };
+it("rejects the sale when the final allowed offer is rejected", () => {
+  const sale = {
+    ...baseSale(),
+    negotiationCount: MAX_NEGOTIATION_ROUNDS - 1,
+  };
 
-//   const offeredSale = createOffer(sale, {
-//     offerPrice: 50000,
-//   }).saleRequest;
+  const offeredSale = createOffer(sale, {
+    offerPrice: 50000,
+  }).saleRequest;
 
-//   const result = respondToOffer(offeredSale, {
-//     response: "rejected",
-//   });
+  const result = respondToOffer(offeredSale, {
+    response: "rejected",
+  });
 
-//   expect(result.saleRequest.negotiationCount).toBe(
-//     MAX_NEGOTIATION_ROUNDS
-//   );
+  expect(result.saleRequest.negotiationCount).toBe(
+    MAX_NEGOTIATION_ROUNDS
+  );
 
-//   expect(result.saleRequest.status).toBe(SALE_STATUS.REJECTED);
-//   expect(result.finalRejected).toBe(true);
-// });
+  expect(result.saleRequest.status).toBe(SALE_STATUS.REJECTED);
+  expect(result.finalRejected).toBe(true);
+});
+
+//reject Invalid sale input 
+
+it("rejects a missing sale object", () => {
+  expect(() => {
+    createOffer(null, { offerPrice: 50000 });
+  }).toThrow(/sale must be an object/);
+});
+
+//reject NaN as counter-price 
+it("rejects NaN as a counter-price", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  expect(() => {
+    respondToOffer(offeredSale, {
+      response: "rejected",
+      counterPrice: NaN,
+    });
+  }).toThrow=(/counterPrice must be a number/);
+});
+
+
+//Check that the original negotiation history stays unchanged
+it("does not modify the original negotiation history", () => {
+  const originalSale = {
+    ...baseSale(),
+    status: SALE_STATUS.NEGOTIATING,
+    negotiationCount: 1,
+    negotiations: [
+      {
+        trialNumber: 1,
+        adminOfferPrice: 50000,
+        sellerResponse: "pending",
+      },
+    ],
+  };
+
+  const originalHistory = structuredClone( originalSale.negotiations);
+
+  createOffer(originalSale, {
+    offerPrice: 55000,
+  });
+
+  expect(originalSale.negotiations).toEqual(originalHistory);
+});
+
+//Check that rejecting an offer without a counter-price
+// keeps the correct status
+
+it("continues negotiating when an offer is rejected without a counter-price", () => {
+  const offeredSale = createOffer(baseSale(), {
+    offerPrice: 50000,
+  }).saleRequest;
+
+  const result = respondToOffer(offeredSale, {
+    response: "rejected",
+  });
+
+  expect(result.saleRequest.status).toBe(SALE_STATUS.NEGOTIATING );
+
+  expect(result.saleRequest.negotiations[0].sellerResponse)
+    .toBe("rejected");
+
+  expect(result.finalRejected).toBe(false);
+});

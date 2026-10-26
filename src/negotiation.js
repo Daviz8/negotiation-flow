@@ -115,9 +115,7 @@ export function respondToOffer(
   const sale = copySale(saleInput);
 
   if (!["accepted", "rejected"].includes(response)) {
-    throw new TypeError(
-      'response must be "accepted" or "rejected".'
-    );
+    throw new TypeError( 'response must be "accepted" or "rejected".'  );
   }
 
   // Get the latest negotiation round.
@@ -133,7 +131,25 @@ export function respondToOffer(
   }
 
   // Convert the counter-price to a number.
-  const counter = Number(counterPrice || 0);
+  // Convert the counter-price to a number.
+let counter;
+
+if (
+  counterPrice === undefined ||
+  counterPrice === null ||
+  counterPrice === ""
+) {
+  counter = 0;
+} else {
+  counter = Number(counterPrice);
+}
+
+// Make sure the counter-price is valid.
+if (!Number.isFinite(counter) || counter < 0) {
+  throw new TypeError(
+    "counterPrice must be zero or a positive number."
+  );
+}
 
   if (!Number.isFinite(counter) || counter < 0) {
     throw new TypeError(
