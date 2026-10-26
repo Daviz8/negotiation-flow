@@ -24,8 +24,6 @@ Install the package using npm:
 npm install negotiation-flow
 ```
 
-> Note: This installation command will work publicly after the package has been published to npm. Before publishing, follow the local testing instructions in this README's development workflow or the instructions provided separately.
-
 ## Quick Start
 
 ```js
@@ -152,28 +150,6 @@ const status = SALE_STATUS.SUBMITTED;
 - The package does not provide a user interface, API server, or payment processing.
 - The maximum negotiation-round limit is currently `5`.
 - Validate and test the package against your application's requirements before using it in production.
-
-## Development
-
-Clone your repository and install the development dependencies:
-
-```bash
-npm install
-```
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-Create a package archive for local testing:
-
-```bash
-npm pack
-```
-
-This generates a `.tgz` archive that can be installed into another project.
 
 ## License
 
